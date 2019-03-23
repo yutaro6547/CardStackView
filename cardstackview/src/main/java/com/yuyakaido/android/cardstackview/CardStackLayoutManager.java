@@ -7,6 +7,8 @@ import android.support.annotation.FloatRange;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -183,12 +185,13 @@ public class CardStackLayoutManager
         return listener;
     }
 
-    void updateProportion(float x, float y) {
+    void updateProportion(MotionEvent event) {
+        state.time = event.getEventTime() / 10000000;
         if (getTopPosition() < getItemCount()) {
             View view = findViewByPosition(getTopPosition());
             if (view != null) {
                 float half = getHeight() / 2.0f;
-                state.proportion = -(y - half - view.getTop()) / half;
+                state.proportion = -(event.getY() - half - view.getTop()) / half;
             }
         }
     }
@@ -197,8 +200,11 @@ public class CardStackLayoutManager
         state.width = getWidth();
         state.height = getHeight();
 
+        Log.d("long acceleration = ", String.valueOf(getAccelerationDuringTouch()));
+        Log.d("touch time = ", String.valueOf(state.time));
+
         if (state.status == CardStackState.Status.PrepareSwipeAnimation && (state.targetPosition == RecyclerView.NO_POSITION || state.topPosition < state.targetPosition)) {
-            if (Math.abs(state.dx) > getWidth() || Math.abs(state.dy) > getHeight()) {
+            if (getAccelerationDuringTouch() > 1.0) {
                 state.next(CardStackState.Status.SwipeAnimating);
                 state.topPosition++;
                 final Direction direction = state.getDirection();
@@ -251,6 +257,29 @@ public class CardStackLayoutManager
         if (state.status == CardStackState.Status.Dragging) {
             listener.onCardDragging(state.getDirection(), state.getRatio());
         }
+    }
+
+    private float getAccelerationDuringTouch() {
+        float acceleration = 0f;
+        int x;
+        int y;
+        if (state.dx < 0) {
+            x = state.dx * -1;
+        } else  {
+            x = state.dx;
+        }
+
+        if (state.dy < 0) {
+            y = state.dy * -1;
+        } else {
+            y = state.dy;
+        }
+        Double distance = Math.sqrt(x * x + y * y);
+
+        if (state.time != 0) {
+            acceleration = Float.valueOf(String.valueOf(distance)) / Float.valueOf(String.valueOf(state.time));
+        }
+        return acceleration;
     }
 
     private void updateTranslation(View view) {

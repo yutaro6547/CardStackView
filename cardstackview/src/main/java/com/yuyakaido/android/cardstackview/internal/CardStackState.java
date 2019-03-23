@@ -13,6 +13,7 @@ public class CardStackState {
     public int topPosition = 0;
     public int targetPosition = RecyclerView.NO_POSITION;
     public float proportion = 0.0f;
+    public long time = 0;
 
     public enum Status {
         Idle, Dragging, RewindAnimating, PrepareSwipeAnimation, SwipeAnimating
